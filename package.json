@@ -1,8 +1,8 @@
 {
   "name": "ohogames-cli-layaair-rev",
   "version": "0.0.1",
-  "description": "",
-  "main": "index.js",
+  "description": "ohogames-cli-layaair rev plugin",
+  "main": "",
   "scripts": {
     "test": "echo 'no tests'",
     "preversion": "npm test",
@@ -30,6 +30,6 @@
   "dependencies": {
     "gulp": "4.0.0",
     "gulp-rev": "9.0.0",
-    "gulp-rev-collector": "1.3.3"
+    "gulp-replace": "1.0.0"
   }
 }

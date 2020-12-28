@@ -1,0 +1,35 @@
+{
+  "name": "ohogames-cli-layaair-rev",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo 'no tests'",
+    "preversion": "npm test",
+    "version": "git add -A cli && git add -A templates",
+    "postversion": "echo 'no postversion'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iqudoo/ohogames-cli-layaair-rev.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/iqudoo/ohogames-cli-layaair-rev/issues"
+  },
+  "homepage": "https://github.com/iqudoo/ohogames-cli-layaair-rev#readme",
+  "keywords": [
+    "ohogames",
+    "ohogames-cli",
+    "ohogames-cli-layaair"
+  ],
+  "files": [
+    "plugin.js"
+  ],
+  "dependencies": {
+    "gulp": "4.0.0",
+    "gulp-rev": "9.0.0",
+    "gulp-rev-collector": "1.3.3"
+  }
+}

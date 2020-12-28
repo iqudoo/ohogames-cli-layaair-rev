@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo 'no tests'",
     "preversion": "npm test",
-    "version": "git add -A cli && git add -A templates",
+    "version": "git add -A plugin.js",
     "postversion": "echo 'no postversion'"
   },
   "repository": {

@@ -3,6 +3,7 @@ const path = require('path');
 const gulp = require('gulp');
 const gulpRev = require('gulp-rev');
 const gulpReplace = require('gulp-replace');
+const Md5 = require('./utils/md5');
 
 function unlinkSync(file) {
     try {
@@ -36,31 +37,6 @@ function writeFileSync(file, content) {
     }
 }
 
-function formatDate(date, format = "yyyy-MM-dd") {
-    if (date instanceof Date) {
-        var fmap = {
-            'M+': date.getMonth() + 1,
-            'd+': date.getDate(),
-            'h+': date.getHours(),
-            'm+': date.getMinutes(),
-            's+': date.getSeconds(),
-            'q+': Math.floor((date.getMonth() + 3) / 3),
-            'S+': date.getMilliseconds()
-        }
-        if (/(y+)/i.test(format)) {
-            format = format.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length))
-        }
-        for (var k in fmap) {
-            if (new RegExp('(' + k + ')').test(format)) {
-                format = format.replace(RegExp.$1, RegExp.$1.length === 1
-                    ? fmap[k] : ('00' + fmap[k]).substr(('' + fmap[k]).length))
-            }
-        }
-        return format
-    }
-    return '';
-}
-
 function unique(arr) {
     var newArr = [];
     for (var i = 0; i < arr.length; i++) {
@@ -74,66 +50,77 @@ function unique(arr) {
     return newArr;
 }
 
-function manifestTask(manifestName, inputPath, outputDir) {
+function manifestTask(program) {
     return function (done) {
-        let srcList = [inputPath + '/**/*.*', '!' + inputPath + '/**/*.html'];
-        return gulp.src(srcList).pipe(gulpRev())
-            .pipe(gulp.dest(outputDir))
+        let manifestName = program.revManifestName;
+        let customExcludes = `${program["rev-exclude"] || ""}`.split(",");
+        let revExcludes = unique(["*.html", "*manifest.json", ...customExcludes].filter((type) => {
+            return !!type;
+        })).map((type) => {
+            return program.revInput + "/**/" + type
+        });
+        let revRess = [program.revInput + '/**/*.*', ...revExcludes.map(item => '!' + item)];
+        return gulp.src(revRess).pipe(gulpRev())
+            .pipe(gulp.dest(program.revOutput))
             .pipe(gulpRev.manifest({ path: manifestName }))
-            .pipe(gulp.dest(outputDir))
-            .pipe(gulp.src(`${inputPath}/**/*.html`))
-            .pipe(gulp.dest(outputDir))
+            .pipe(gulp.dest(program.revOutput))
+            .pipe(gulp.src(revExcludes))
+            .pipe(gulp.dest(program.revOutput))
     }
 }
 
-function versionTask(manifestFile, manifestName, verManifestName, outputDir) {
+function versionTask(program) {
     return function (done) {
+        let manifestName = program.revManifestName;
+        let manifestFile = path.join(program.revOutput, manifestName);
         let manifestJson = readJson(manifestFile);
-        let versionPath = manifestJson[manifestName];
-        if (versionPath) {
-            unlinkSync(path.join(outputDir, versionPath));
+        let manifestMd5 = Md5.hex_md5(JSON.stringify(manifestJson)).substring(2, 12);
+        let versionManifestName = `manifest-${manifestMd5}.rev`;
+        let orgManifestFile = manifestJson[manifestName];
+        if (orgManifestFile) {
+            // 替换同名资源
+            unlinkSync(path.join(program.revOutput, orgManifestFile));
         }
-        manifestJson[manifestName] = verManifestName;
-        writeFileSync(path.join(outputDir, verManifestName), JSON.stringify(manifestJson, null, 2));
+        manifestJson[manifestName] = versionManifestName;
+        program.versionManifestFile = path.join(program.revOutput, versionManifestName);
+        writeFileSync(program.versionManifestFile, JSON.stringify(manifestJson, null, 2));
         unlinkSync(manifestFile);
         done && done();
     }
 }
 
-function replaceTask(srcList, manifestFile, outputDir) {
+function replaceTask(program) {
     return function () {
-        let manifestJson = readJson(manifestFile);
+        let customReplaces = `${program["rev-replace"] || ""}`.split(",");
+        let revReplaces = unique(["*.html", "*.js", "*.json", "*.css", "*.atlas", ...customReplaces].filter((type) => {
+            return !!type;
+        })).map((type) => {
+            return program.revOutput + "/**/" + type
+        });
+        revReplaces.push("!" + program.versionManifestFile);
+        console.log(revReplaces);
+        let manifestJson = readJson(program.versionManifestFile);
         let replaceList = Object.keys(manifestJson).map((key) => {
             return [key, manifestJson[key]];
         })
-        var task = gulp.src(srcList);
+        var task = gulp.src(revReplaces);
         replaceList.forEach(replace => {
             if (replace instanceof Array) {
                 task = task.pipe(gulpReplace(...replace));
             }
         });
-        task = task.pipe(gulp.dest(outputDir));
+        task = task.pipe(gulp.dest(program.revOutput));
         return task;
     }
 }
 
 function plugin(program) {
-    let inputPath = program.output;
-    let outputDir = path.join(program.output, "hash");
-    let manifestName = "manifest.rev";
-    let manifestFile = path.join(outputDir, manifestName);
-    let versionManifestName = `manifest-${formatDate(new Date, "yyyyMMddhhmmssS")}.rev`;
-    let versionManifestFile = path.join(outputDir, versionManifestName);
-    let customTypes = `${program["rev-type"] || ""}`.split(",");
-    let revTypes = unique(["html", "js", "json", "css", "atlas", ...customTypes].filter((type) => {
-        return !!type;
-    })).map((type) => {
-        return outputDir + "/**/*." + type
-    });
-    revTypes.push("!" + versionManifestFile);
-    gulp.task('plugin-rev-manifest', manifestTask(manifestName, inputPath, outputDir));
-    gulp.task('plugin-rev-version', versionTask(manifestFile, manifestName, versionManifestName, outputDir));
-    gulp.task('plugin-rev-replace', replaceTask(revTypes, versionManifestFile, outputDir));
+    program.revInput = program.output;
+    program.revOutput = path.join(program.output, program["rev-output"] || 'dist-dev');
+    program.revManifestName = program["rev-manifest-name"] || "manifest.rev";
+    gulp.task('plugin-rev-manifest', manifestTask(program));
+    gulp.task('plugin-rev-version', versionTask(program));
+    gulp.task('plugin-rev-replace', replaceTask(program));
     return gulp.series([
         'plugin-rev-manifest',
         'plugin-rev-version',

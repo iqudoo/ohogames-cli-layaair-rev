@@ -25,6 +25,7 @@
     "ohogames-cli-layaair"
   ],
   "files": [
+    "utils",
     "plugin.js"
   ],
   "dependencies": {

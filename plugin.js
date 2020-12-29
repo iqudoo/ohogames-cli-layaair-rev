@@ -98,7 +98,6 @@ function replaceTask(program) {
             return program.revOutput + "/**/" + type
         });
         revReplaces.push("!" + program.versionManifestFile);
-        console.log(revReplaces);
         let manifestJson = readJson(program.versionManifestFile);
         let replaceList = Object.keys(manifestJson).map((key) => {
             return [key, manifestJson[key]];

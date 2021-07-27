@@ -115,7 +115,7 @@ function replaceTask(program) {
 
 function plugin(program) {
     program.revInput = program.output;
-    program.revOutput = path.join(program.output, program["rev-output"] || 'dist-dev');
+    program.revOutput = path.join(program.output, program["rev-output"] || 'dist-rev');
     program.revManifestName = program["rev-manifest-name"] || "manifest.rev";
     gulp.task('plugin-rev-manifest', manifestTask(program));
     gulp.task('plugin-rev-version', versionTask(program));

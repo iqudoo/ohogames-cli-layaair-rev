@@ -4,6 +4,7 @@ const gulp = require('gulp');
 const gulpRev = require('gulp-rev');
 const gulpReplace = require('gulp-replace');
 const Md5 = require('./utils/md5');
+const FileUtils = require('./utils/file');
 
 function unlinkSync(file) {
     try {
@@ -117,6 +118,7 @@ function plugin(program) {
     program.revInput = program.output;
     program.revOutput = path.join(program.output, program["rev-output"] || 'dist-rev');
     program.revManifestName = program["rev-manifest-name"] || "manifest.rev";
+    FileUtils.deleteFolderSync(program.revOutput);
     gulp.task('plugin-rev-manifest', manifestTask(program));
     gulp.task('plugin-rev-version', versionTask(program));
     gulp.task('plugin-rev-replace', replaceTask(program));

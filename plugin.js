@@ -116,7 +116,11 @@ function replaceTask(program) {
 
 function plugin(program) {
     program.revInput = program.output;
-    program.revOutput = path.join(program.output, program["rev-output"] || 'dist-rev');
+    if (program.outputVersion) {
+        program.revOutput = path.join(program.output, program["rev-output"] || 'dist-rev', program.version);
+    } else {
+        program.revOutput = path.join(program.output, program["rev-output"] || 'dist-rev');
+    }
     program.revManifestName = program["rev-manifest-name"] || "manifest.rev";
     FileUtils.deleteFolderSync(program.revOutput);
     gulp.task('plugin-rev-manifest', manifestTask(program));
